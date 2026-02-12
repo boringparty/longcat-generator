@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Longcat Generator with Rotated Text</title>
+<style>
+  body { text-align: center; font-family: sans-serif; padding: 50px; }
+  textarea, select, button { font-size: 1rem; padding: 5px 10px; margin: 5px; }
+  textarea { width: 300px; height: 100px; }
+  #charCount { margin: 5px; font-weight: bold; }
+  img { margin-top: 20px; max-width: 100%; }
+</style>
+</head>
+<body>
+<h1>Longcat Generator</h1>
+
+<textarea id="sideText" placeholder="Type your text here"></textarea>
+<div id="charCount">150 characters remaining</div>
+
+<select id="bodyCount">
+  <script>
+    for(let i=10;i<=100;i+=10) document.write(`<option value="${i}">${i}</option>`);
+  </script>
+</select>
+<button id="generateBtn">Generate</button>
+
+<div>
+  <img id="longcat" src="" alt="Longcat" />
+</div>
+
+<script>
+const loadImage = src => new Promise(res=>{
+  const img = new Image();
+  img.onload = ()=>res(img);
+  img.src = src;
+});
+
+const sideTextEl = document.getElementById('sideText');
+const charCountEl = document.getElementById('charCount');
+const bodyCountEl = document.getElementById('bodyCount');
+
+function updateCharLimit() {
+  const count = parseInt(bodyCountEl.value);
+  const maxChars = count * 15; // 10 bodies = 150, 20 bodies = 300 etc
+  const remaining = Math.max(0, maxChars - sideTextEl.value.length);
+  charCountEl.textContent = `${remaining} characters remaining`;
+}
+
+bodyCountEl.onchange = updateCharLimit;
+sideTextEl.oninput = updateCharLimit;
+
+// Initialize
+updateCharLimit();
+
+document.getElementById('generateBtn').onclick = async ()=>{
+  const count = parseInt(bodyCountEl.value);
+  const sideText = sideTextEl.value;
+
+  const [head, body, legs] = await Promise.all([
+    loadImage('head.gif'),
+    loadImage('body.gif'),
+    loadImage('legs.gif')
+  ]);
+
+  const width = 190;
+  const height = head.height + body.height*count + legs.height;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  // Draw longcat
+  ctx.drawImage(head,0,0);
+  for(let i=0;i<count;i++) ctx.drawImage(body,0,head.height + i*body.height);
+  ctx.drawImage(legs,0,head.height + count*body.height);
+
+  // Draw rotated side text (+90° clockwise)
+  ctx.save();
+  ctx.font = '7pt Courier';
+  ctx.fillStyle = 'black';
+  ctx.textBaseline = 'top';
+
+  ctx.translate(160, 100);
+  ctx.rotate(Math.PI / 2); // 90° CW
+  ctx.fillText(sideText, 0, 0);
+  ctx.restore();
+
+  // Export PNG
+  document.getElementById('longcat').src = canvas.toDataURL('image/png');
+};
+</script>
+</body>
+</html>
